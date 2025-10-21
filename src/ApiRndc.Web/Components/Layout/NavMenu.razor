@@ -1,0 +1,27 @@
+<MudNavMenu>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+
+    <AuthorizeView Roles="Administrador,Operador">
+        <MudNavGroup Title="Registros" Icon="@Icons.Material.Filled.AppRegistration" Expanded="true">
+            <MudNavLink Href="/terceros" Icon="@Icons.Material.Filled.People">Terceros</MudNavLink>
+            <MudNavLink Href="/vehiculos" Icon="@Icons.Material.Filled.LocalShipping">Vehículos</MudNavLink>
+        </MudNavGroup>
+
+        <MudNavGroup Title="Operaciones" Icon="@Icons.Material.Filled.LocalShipping" Expanded="true">
+            <MudNavLink Href="/remesas" Icon="@Icons.Material.Filled.Assignment">Remesas</MudNavLink>
+            <MudNavLink Href="/manifiestos" Icon="@Icons.Material.Filled.Description">Manifiestos</MudNavLink>
+            <MudNavLink Href="/cumplidos" Icon="@Icons.Material.Filled.CheckCircle">Cumplidos</MudNavLink>
+        </MudNavGroup>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Administrador,Operador,Consulta">
+        <MudNavLink Href="/transacciones" Icon="@Icons.Material.Filled.History">Historial de Transacciones</MudNavLink>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Administrador">
+        <MudNavGroup Title="Administración" Icon="@Icons.Material.Filled.Settings">
+            <MudNavLink Href="/usuarios" Icon="@Icons.Material.Filled.ManageAccounts">Usuarios</MudNavLink>
+            <MudNavLink Href="/configuracion" Icon="@Icons.Material.Filled.Tune">Configuración</MudNavLink>
+        </MudNavGroup>
+    </AuthorizeView>
+</MudNavMenu>

@@ -1,0 +1,351 @@
+@page "/remesas"
+@attribute [Authorize(Roles = "Administrador,Operador")]
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<PageTitle>Expedición de Remesas - ApiRndc</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Expedición de Remesas</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">Registre remesas de carga terrestre en el RNDC</MudText>
+
+<MudCard>
+    <MudCardContent>
+        <EditForm Model="@_model" OnValidSubmit="HandleSubmit">
+            <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                <MudTabPanel Text="Información Básica" Icon="@Icons.Material.Filled.Info">
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.NumNitEmpresaTransporte"
+                                          Label="NIT Empresa de Transporte *"
+                                          Variant="Variant.Outlined"
+                                          Required="true" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.ConsecutivoRemesa"
+                                          Label="Consecutivo Remesa *"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          HelperText="Número único de la remesa" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.ConsecutivoInformacionCarga"
+                                          Label="Consecutivo Información Carga"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.CodOperacionTransporte"
+                                          Label="Código Operación Transporte"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Carga" Icon="@Icons.Material.Filled.Inventory">
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.CodNaturalezaCarga"
+                                          Label="Naturaleza de la Carga"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudNumericField @bind-Value="_model.CantidadCargada"
+                                             Label="Cantidad Cargada"
+                                             Variant="Variant.Outlined"
+                                             Min="0m" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.UnidadMedidaCapacidad"
+                                          Label="Unidad de Medida"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.CodTipoEmpaque"
+                                          Label="Tipo de Empaque"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudNumericField @bind-Value="_model.PesoContenedorVacio"
+                                             Label="Peso Contenedor Vacío"
+                                             Variant="Variant.Outlined"
+                                             Min="0m" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.MercanciaRemesa"
+                                          Label="Mercancía"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.DescripcionCortaProducto"
+                                          Label="Descripción del Producto"
+                                          Variant="Variant.Outlined"
+                                          Lines="2" />
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Remitente y Destinatario" Icon="@Icons.Material.Filled.People">
+                    <MudGrid>
+                        <MudItem xs="12"><MudText Typo="Typo.h6" Color="Color.Primary">Remitente</MudText></MudItem>
+
+                        <MudItem xs="12" md="4">
+                            <MudSelect @bind-Value="_model.CodTipoIdRemitente"
+                                       Label="Tipo ID Remitente"
+                                       Variant="Variant.Outlined">
+                                <MudSelectItem Value="@("")">Ninguno</MudSelectItem>
+                                <MudSelectItem Value="@("C")">Cédula</MudSelectItem>
+                                <MudSelectItem Value="@("N")">NIT</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="4">
+                            <MudTextField @bind-Value="_model.NumIdRemitente"
+                                          Label="ID Remitente"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="4">
+                            <MudTextField @bind-Value="_model.CodSedeRemitente"
+                                          Label="Código Sede Remitente"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12"><MudText Typo="Typo.h6" Color="Color.Secondary">Destinatario</MudText></MudItem>
+
+                        <MudItem xs="12" md="4">
+                            <MudSelect @bind-Value="_model.CodTipoIdDestinatario"
+                                       Label="Tipo ID Destinatario"
+                                       Variant="Variant.Outlined">
+                                <MudSelectItem Value="@("")">Ninguno</MudSelectItem>
+                                <MudSelectItem Value="@("C")">Cédula</MudSelectItem>
+                                <MudSelectItem Value="@("N")">NIT</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="4">
+                            <MudTextField @bind-Value="_model.NumIdDestinatario"
+                                          Label="ID Destinatario"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="4">
+                            <MudTextField @bind-Value="_model.CodSedeDestinatario"
+                                          Label="Código Sede Destinatario"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Póliza y Fechas" Icon="@Icons.Material.Filled.DateRange">
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.DuenoPoliza"
+                                          Label="Dueño de la Póliza"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.NumPolizaTransporte"
+                                          Label="Número de Póliza"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.CompaniaSeguro"
+                                          Label="Compañía de Seguros"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudDatePicker @bind-Date="_fechaVencimientoPoliza"
+                                           Label="Fecha Vencimiento Póliza"
+                                           Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudDatePicker @bind-Date="_fechaCitaCargue"
+                                           Label="Fecha Cita Cargue"
+                                           Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTimePicker @bind-Time="_horaCitaCargue"
+                                           Label="Hora Cita Cargue"
+                                           Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudDatePicker @bind-Date="_fechaCitaDescargue"
+                                           Label="Fecha Cita Descargue"
+                                           Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTimePicker @bind-Time="_horaCitaDescargue"
+                                           Label="Hora Cita Descargue"
+                                           Variant="Variant.Outlined" />
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Adicional" Icon="@Icons.Material.Filled.MoreHoriz">
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.OrdenServicioGenerador"
+                                          Label="Orden de Servicio"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.PermisoCargaExtra"
+                                          Label="Permiso Carga Extra"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.NumIdGps"
+                                          Label="ID GPS"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.CodigoUn"
+                                          Label="Código UN"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+            </MudTabs>
+
+            <MudDivider Class="my-4" />
+
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Send"
+                       Disabled="_isProcessing">
+                @if (_isProcessing)
+                {
+                    <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                    <span>Enviando al RNDC...</span>
+                }
+                else
+                {
+                    <span>Expedir Remesa</span>
+                }
+            </MudButton>
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       OnClick="ResetForm"
+                       Class="ml-2">
+                Limpiar
+            </MudButton>
+        </EditForm>
+    </MudCardContent>
+</MudCard>
+
+@if (_result != null)
+{
+    <MudCard Class="mt-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">
+                    @if (_result.Success)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Class="mr-2" />
+                        <span>Expedición Exitosa</span>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Class="mr-2" />
+                        <span>Error en la Expedición</span>
+                    }
+                </MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (_result.Success)
+            {
+                <MudText><strong>IngresoId:</strong> @_result.IngresoId</MudText>
+                <MudText><strong>Consecutivo:</strong> @_result.ConsecutivoRemesa</MudText>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Error">@_result.ErrorMessage</MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    private RemesaDto _model = new();
+    private bool _isProcessing = false;
+    private ExpedirRemesaResult? _result;
+    private DateTime? _fechaVencimientoPoliza;
+    private DateTime? _fechaCitaCargue;
+    private TimeSpan? _horaCitaCargue;
+    private DateTime? _fechaCitaDescargue;
+    private TimeSpan? _horaCitaDescargue;
+
+    private async Task HandleSubmit()
+    {
+        _isProcessing = true;
+        _result = null;
+
+        try
+        {
+            // Mapear fechas
+            _model.FechaVencimientoPolizaCarga = _fechaVencimientoPoliza;
+            _model.FechaCitaPactadaCargue = _fechaCitaCargue;
+            _model.HoraCitaPactadaCargue = _horaCitaCargue?.ToString(@"hh\:mm");
+            _model.FechaCitaPactadaDescargue = _fechaCitaDescargue;
+            _model.HoraCitaPactadaDescargueRemesa = _horaCitaDescargue?.ToString(@"hh\:mm");
+
+            var command = new ExpedirRemesaCommand
+                {
+                    Remesa = _model,
+                    CreatedBy = "Usuario"
+                };
+
+            _result = await Mediator.Send(command);
+
+            if (_result.Success)
+            {
+                Snackbar.Add("Remesa expedida exitosamente", Severity.Success);
+                ResetForm();
+            }
+            else
+            {
+                Snackbar.Add($"Error: {_result.ErrorMessage}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        _model = new RemesaDto();
+        _fechaVencimientoPoliza = null;
+        _fechaCitaCargue = null;
+        _horaCitaCargue = null;
+        _fechaCitaDescargue = null;
+        _horaCitaDescargue = null;
+    }
+}

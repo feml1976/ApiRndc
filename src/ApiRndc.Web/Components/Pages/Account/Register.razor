@@ -1,0 +1,144 @@
+@page "/Account/Register"
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> UserManager
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Registrarse - ApiRndc</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">
+            Crear Cuenta
+        </MudText>
+        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+            Sistema de Gestión RNDC
+        </MudText>
+
+        <EditForm Model="@_model" OnValidSubmit="HandleRegister">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="_model.Email"
+                          Label="Correo Electrónico"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="mb-4"
+                          InputType="InputType.Email"
+                          Required="true"
+                          RequiredError="El correo es requerido" />
+
+            <MudTextField @bind-Value="_model.Password"
+                          Label="Contraseña"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="mb-4"
+                          InputType="InputType.Password"
+                          Required="true"
+                          RequiredError="La contraseña es requerida"
+                          HelperText="Mínimo 8 caracteres, mayúsculas, minúsculas y números" />
+
+            <MudTextField @bind-Value="_model.ConfirmPassword"
+                          Label="Confirmar Contraseña"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="mb-4"
+                          InputType="InputType.Password"
+                          Required="true"
+                          RequiredError="Debe confirmar la contraseña" />
+
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Disabled="_isProcessing">
+                @if (_isProcessing)
+                {
+                    <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                    <span>Registrando...</span>
+                }
+                else
+                {
+                    <span>Registrarse</span>
+                }
+            </MudButton>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Align="Align.Center">
+                <MudLink Href="/Account/Login" Typo="Typo.body2">
+                    ¿Ya tienes cuenta? Inicia sesión aquí
+                </MudLink>
+            </MudText>
+        </EditForm>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private RegisterModel _model = new();
+    private bool _isProcessing = false;
+
+    private async Task HandleRegister()
+    {
+        if (_model.Password != _model.ConfirmPassword)
+        {
+            Snackbar.Add("Las contraseñas no coinciden", Severity.Error);
+            return;
+        }
+
+        _isProcessing = true;
+        try
+        {
+            var user = new IdentityUser
+            {
+                UserName = _model.Email,
+                Email = _model.Email
+            };
+
+            var result = await UserManager.CreateAsync(user, _model.Password);
+
+            if (result.Succeeded)
+            {
+                // Asignar rol por defecto "Consulta"
+                await UserManager.AddToRoleAsync(user, "Consulta");
+
+                await SignInManager.SignInAsync(user, isPersistent: false);
+                Snackbar.Add("Registro exitoso", Severity.Success);
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                foreach (var error in result.Errors)
+                {
+                    Snackbar.Add(TranslateError(error.Description), Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al registrar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private string TranslateError(string error)
+    {
+        // Traducir errores comunes de Identity al español
+        return error
+            .Replace("Passwords must have at least one digit", "La contraseña debe tener al menos un dígito")
+            .Replace("Passwords must have at least one uppercase", "La contraseña debe tener al menos una mayúscula")
+            .Replace("Passwords must have at least one lowercase", "La contraseña debe tener al menos una minúscula")
+            .Replace("is already taken", "ya está en uso")
+            .Replace("is invalid", "es inválido");
+    }
+
+    private class RegisterModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

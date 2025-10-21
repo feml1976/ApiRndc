@@ -1,0 +1,341 @@
+@page "/transacciones"
+@attribute [Authorize(Roles = "Administrador,Operador,Consulta")]
+@using ApiRndc.Domain.Interfaces
+@using ApiRndc.Domain.Entities
+@using ApiRndc.Domain.Enums
+@using Microsoft.EntityFrameworkCore
+@inject IUnitOfWork UnitOfWork
+@inject ISnackbar Snackbar
+
+<PageTitle>Historial de Transacciones - ApiRndc</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Historial de Transacciones</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">Consulte todas las transacciones enviadas al RNDC</MudText>
+
+<MudCard Class="mb-4">
+    <MudCardContent>
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <MudSelect @bind-Value="_filterTransactionType"
+                           Label="Tipo de Transacción"
+                           Variant="Variant.Outlined"
+                           AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="@((TransactionType?)null)">Todas</MudSelectItem>
+                    <MudSelectItem Value="@((TransactionType?)TransactionType.RegistroTerceros)">Registro Terceros</MudSelectItem>
+                    <MudSelectItem Value="@((TransactionType?)TransactionType.RegistroVehiculos)">Registro Vehículos</MudSelectItem>
+                    <MudSelectItem Value="@((TransactionType?)TransactionType.ExpedicionRemesa)">Expedición Remesa</MudSelectItem>
+                    <MudSelectItem Value="@((TransactionType?)TransactionType.ExpedicionManifiesto)">Expedición Manifiesto</MudSelectItem>
+                    <MudSelectItem Value="@((TransactionType?)TransactionType.CumplidoRemesa)">Cumplido Remesa</MudSelectItem>
+                    <MudSelectItem Value="@((TransactionType?)TransactionType.CumplidoManifiesto)">Cumplido Manifiesto</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudSelect @bind-Value="_filterStatus"
+                           Label="Estado"
+                           Variant="Variant.Outlined"
+                           AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="@((TransactionStatus?)null)">Todos</MudSelectItem>
+                    <MudSelectItem Value="@((TransactionStatus?)TransactionStatus.Success)">Exitosas</MudSelectItem>
+                    <MudSelectItem Value="@((TransactionStatus?)TransactionStatus.Failed)">Fallidas</MudSelectItem>
+                    <MudSelectItem Value="@((TransactionStatus?)TransactionStatus.Pending)">Pendientes</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudDatePicker @bind-Date="_filterDateFrom"
+                               Label="Desde"
+                               Variant="Variant.Outlined" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudDatePicker @bind-Date="_filterDateTo"
+                               Label="Hasta"
+                               Variant="Variant.Outlined" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="ApplyFilters"
+                           StartIcon="@Icons.Material.Filled.Search">
+                    Buscar
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           OnClick="ClearFilters"
+                           Class="ml-2">
+                    Limpiar Filtros
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+<MudTable Items="@_transactions"
+          Dense="true"
+          Hover="true"
+          Striped="true"
+          Loading="@_loading"
+          LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>Tipo</MudTh>
+        <MudTh>Referencia</MudTh>
+        <MudTh>NIT Empresa</MudTh>
+        <MudTh>Estado</MudTh>
+        <MudTh>IngresoId</MudTh>
+        <MudTh>Fecha</MudTh>
+        <MudTh>Acciones</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Tipo">
+            <MudChip T="string" Size="Size.Small" Color="@GetTransactionTypeColor(context.TransactionType)">
+                @GetTransactionTypeName(context.TransactionType)
+            </MudChip>
+        </MudTd>
+        <MudTd DataLabel="Referencia">@context.ExternalReference</MudTd>
+        <MudTd DataLabel="NIT">@context.NitEmpresaTransporte</MudTd>
+        <MudTd DataLabel="Estado">
+            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                @context.Status
+            </MudChip>
+        </MudTd>
+        <MudTd DataLabel="IngresoId">
+            @if (!string.IsNullOrWhiteSpace(context.IngresoId))
+            {
+                <MudText Typo="Typo.body2" Color="Color.Success">@context.IngresoId</MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Default">-</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="Fecha">@context.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudTd>
+        <MudTd DataLabel="Acciones">
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           OnClick="@(() => ViewDetails(context))" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No se encontraron transacciones</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>Cargando transacciones...</MudText>
+    </LoadingContent>
+</MudTable>
+
+<MudDialog @bind-Visible="_detailsDialogVisible" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Detalle de Transacción</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_selectedTransaction != null)
+        {
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">Tipo de Transacción</MudText>
+                    <MudText Typo="Typo.body2">@GetTransactionTypeName(_selectedTransaction.TransactionType)</MudText>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">Estado</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(_selectedTransaction.Status)">
+                        @_selectedTransaction.Status
+                    </MudChip>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">Referencia Externa</MudText>
+                    <MudText Typo="Typo.body2">@_selectedTransaction.ExternalReference</MudText>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">NIT Empresa</MudText>
+                    <MudText Typo="Typo.body2">@_selectedTransaction.NitEmpresaTransporte</MudText>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">IngresoId</MudText>
+                    <MudText Typo="Typo.body2">@(_selectedTransaction.IngresoId ?? "-")</MudText>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2">Fecha Creación</MudText>
+                    <MudText Typo="Typo.body2">@_selectedTransaction.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</MudText>
+                </MudItem>
+
+                @if (_selectedTransaction.Status == TransactionStatus.Failed)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Error">
+                            <MudText Typo="Typo.subtitle2">Error</MudText>
+                            <MudText Typo="Typo.body2">@(_selectedTransaction.ErrorMessage ?? "Error desconocido")</MudText>
+                            @if (!string.IsNullOrWhiteSpace(_selectedTransaction.ErrorCode))
+                            {
+                                <MudText Typo="Typo.caption">Código: @_selectedTransaction.ErrorCode</MudText>
+                            }
+                        </MudAlert>
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudExpansionPanels>
+                        <MudExpansionPanel Text="XML de Solicitud">
+                            <MudPaper Class="pa-4" Elevation="0">
+                                <pre style="font-size: 11px; overflow-x: auto;">@_selectedTransaction.RequestXml</pre>
+                            </MudPaper>
+                        </MudExpansionPanel>
+
+                        @if (!string.IsNullOrWhiteSpace(_selectedTransaction.ResponseXml))
+                        {
+                            <MudExpansionPanel Text="XML de Respuesta">
+                                <MudPaper Class="pa-4" Elevation="0">
+                                    <pre style="font-size: 11px; overflow-x: auto;">@_selectedTransaction.ResponseXml</pre>
+                                </MudPaper>
+                            </MudExpansionPanel>
+                        }
+                    </MudExpansionPanels>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseDialog" Color="Color.Primary">Cerrar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<RndcTransaction> _transactions = new();
+    private bool _loading = false;
+    private bool _detailsDialogVisible = false;
+    private RndcTransaction? _selectedTransaction;
+    private TransactionType? _filterTransactionType;
+    private TransactionStatus? _filterStatus;
+    private DateTime? _filterDateFrom;
+    private DateTime? _filterDateTo;
+
+    private DialogOptions _dialogOptions = new()
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true
+        };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTransactions();
+    }
+
+    private async Task LoadTransactions()
+    {
+        _loading = true;
+        try
+        {
+            var allTransactions = await UnitOfWork.RndcTransactions.GetAllAsync();
+            _transactions = allTransactions.OrderByDescending(t => t.CreatedAt).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar transacciones: {ex.Message}", Severity.Error);
+            _transactions = new List<RndcTransaction>();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ApplyFilters()
+    {
+        _loading = true;
+        try
+        {
+            var allTransactions = await UnitOfWork.RndcTransactions.GetAllAsync();
+            var filtered = allTransactions.AsEnumerable();
+
+            if (_filterTransactionType.HasValue)
+                filtered = filtered.Where(t => t.TransactionType == _filterTransactionType.Value);
+
+            if (_filterStatus.HasValue)
+                filtered = filtered.Where(t => t.Status == _filterStatus.Value);
+
+            if (_filterDateFrom.HasValue)
+                filtered = filtered.Where(t => t.CreatedAt.Date >= _filterDateFrom.Value.Date);
+
+            if (_filterDateTo.HasValue)
+                filtered = filtered.Where(t => t.CreatedAt.Date <= _filterDateTo.Value.Date);
+
+            _transactions = filtered.OrderByDescending(t => t.CreatedAt).ToList();
+            Snackbar.Add($"Se encontraron {_transactions.Count} transacciones", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al filtrar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ClearFilters()
+    {
+        _filterTransactionType = null;
+        _filterStatus = null;
+        _filterDateFrom = null;
+        _filterDateTo = null;
+        await LoadTransactions();
+    }
+
+    private void ViewDetails(RndcTransaction transaction)
+    {
+        _selectedTransaction = transaction;
+        _detailsDialogVisible = true;
+    }
+
+    private void CloseDialog()
+    {
+        _detailsDialogVisible = false;
+        _selectedTransaction = null;
+    }
+
+    private string GetTransactionTypeName(TransactionType type)
+    {
+        return type switch
+        {
+            TransactionType.RegistroTerceros => "Registro Terceros",
+            TransactionType.RegistroVehiculos => "Registro Vehículos",
+            TransactionType.ExpedicionRemesa => "Expedición Remesa",
+            TransactionType.ExpedicionManifiesto => "Expedición Manifiesto",
+            TransactionType.CumplidoRemesa => "Cumplido Remesa",
+            TransactionType.CumplidoManifiesto => "Cumplido Manifiesto",
+            _ => "Desconocido"
+        };
+    }
+
+    private Color GetStatusColor(TransactionStatus status)
+    {
+        return status switch
+        {
+            TransactionStatus.Success => Color.Success,
+            TransactionStatus.Failed => Color.Error,
+            TransactionStatus.Pending => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetTransactionTypeColor(TransactionType type)
+    {
+        return type switch
+        {
+            TransactionType.RegistroTerceros => Color.Primary,
+            TransactionType.RegistroVehiculos => Color.Secondary,
+            TransactionType.ExpedicionRemesa => Color.Success,
+            TransactionType.ExpedicionManifiesto => Color.Info,
+            TransactionType.CumplidoRemesa => Color.Tertiary,
+            TransactionType.CumplidoManifiesto => Color.Tertiary,
+            _ => Color.Default
+        };
+    }
+}

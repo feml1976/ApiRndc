@@ -1,0 +1,357 @@
+@page "/usuarios"
+@attribute [Authorize(Roles = "Administrador")]
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Gestión de Usuarios - ApiRndc</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Gestión de Usuarios</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">Administre usuarios y sus roles en el sistema</MudText>
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Usuarios Registrados</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="OpenCreateDialog">
+                        Nuevo Usuario
+                    </MudButton>
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudTable Items="@_users" Dense="true" Hover="true" Loading="@_loading">
+                    <HeaderContent>
+                        <MudTh>Email</MudTh>
+                        <MudTh>Roles</MudTh>
+                        <MudTh>Email Confirmado</MudTh>
+                        <MudTh>Bloqueado</MudTh>
+                        <MudTh>Acciones</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Email">@context.Email</MudTd>
+                        <MudTd DataLabel="Roles">
+                            @if (_userRoles.ContainsKey(context.Id))
+                            {
+                                @foreach (var role in _userRoles[context.Id])
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="GetRoleColor(role)">@role</MudChip>
+                                }
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Confirmado">
+                            @if (context.EmailConfirmed)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Bloqueado">
+                            @if (context.LockoutEnd.HasValue && context.LockoutEnd > DateTimeOffset.Now)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Lock" Color="Color.Error" Size="Size.Small" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.LockOpen" Color="Color.Success" Size="Size.Small" />
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Acciones">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="@(() => OpenEditDialog(context))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Error"
+                                           OnClick="@(() => DeleteUser(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+<MudDialog @bind-Visible="_createDialogVisible" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Crear Nuevo Usuario</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_newUserEmail"
+                      Label="Email *"
+                      Variant="Variant.Outlined"
+                      InputType="InputType.Email"
+                      Required="true"
+                      Class="mb-4" />
+
+        <MudTextField @bind-Value="_newUserPassword"
+                      Label="Contraseña *"
+                      Variant="Variant.Outlined"
+                      InputType="InputType.Password"
+                      Required="true"
+                      HelperText="Mínimo 8 caracteres, mayúsculas, minúsculas y números"
+                      Class="mb-4" />
+
+        <MudSelect @bind-Value="_selectedRole"
+                   Label="Rol *"
+                   Variant="Variant.Outlined"
+                   Required="true">
+            <MudSelectItem Value="@("Administrador")">Administrador</MudSelectItem>
+            <MudSelectItem Value="@("Operador")">Operador</MudSelectItem>
+            <MudSelectItem Value="@("Consulta")">Consulta</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseCreateDialog">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="CreateUser" Disabled="@_processing">
+            @if (_processing)
+            {
+                <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+            }
+            Crear Usuario
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-Visible="_editDialogVisible" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Editar Usuario</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_editingUser != null)
+        {
+            <MudText Class="mb-4"><strong>Email:</strong> @_editingUser.Email</MudText>
+
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Roles:</MudText>
+            <MudCheckBox @bind-Value="_roleAdministrador" Label="Administrador" Color="Color.Primary" />
+            <MudCheckBox @bind-Value="_roleOperador" Label="Operador" Color="Color.Secondary" />
+            <MudCheckBox @bind-Value="_roleConsulta" Label="Consulta" Color="Color.Info" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseEditDialog">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="UpdateUserRoles" Disabled="@_processing">
+            @if (_processing)
+            {
+                <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+            }
+            Guardar Cambios
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<IdentityUser> _users = new();
+    private Dictionary<string, List<string>> _userRoles = new();
+    private bool _loading = false;
+    private bool _processing = false;
+    private bool _createDialogVisible = false;
+    private bool _editDialogVisible = false;
+    private IdentityUser? _editingUser;
+
+    private string _newUserEmail = string.Empty;
+    private string _newUserPassword = string.Empty;
+    private string _selectedRole = "Consulta";
+
+    private bool _roleAdministrador = false;
+    private bool _roleOperador = false;
+    private bool _roleConsulta = false;
+
+    private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        _loading = true;
+        try
+        {
+            _users = UserManager.Users.ToList();
+            _userRoles.Clear();
+
+            foreach (var user in _users)
+            {
+                var roles = await UserManager.GetRolesAsync(user);
+                _userRoles[user.Id] = roles.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar usuarios: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        _newUserEmail = string.Empty;
+        _newUserPassword = string.Empty;
+        _selectedRole = "Consulta";
+        _createDialogVisible = true;
+    }
+
+    private void CloseCreateDialog()
+    {
+        _createDialogVisible = false;
+    }
+
+    private async Task CreateUser()
+    {
+        if (string.IsNullOrWhiteSpace(_newUserEmail) || string.IsNullOrWhiteSpace(_newUserPassword))
+        {
+            Snackbar.Add("Email y contraseña son requeridos", Severity.Error);
+            return;
+        }
+
+        _processing = true;
+        try
+        {
+            var user = new IdentityUser
+            {
+                UserName = _newUserEmail,
+                Email = _newUserEmail,
+                EmailConfirmed = true
+            };
+
+            var result = await UserManager.CreateAsync(user, _newUserPassword);
+
+            if (result.Succeeded)
+            {
+                await UserManager.AddToRoleAsync(user, _selectedRole);
+                Snackbar.Add("Usuario creado exitosamente", Severity.Success);
+                CloseCreateDialog();
+                await LoadUsers();
+            }
+            else
+            {
+                foreach (var error in result.Errors)
+                {
+                    Snackbar.Add(error.Description, Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al crear usuario: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private async Task OpenEditDialog(IdentityUser user)
+    {
+        _editingUser = user;
+        var roles = await UserManager.GetRolesAsync(user);
+
+        _roleAdministrador = roles.Contains("Administrador");
+        _roleOperador = roles.Contains("Operador");
+        _roleConsulta = roles.Contains("Consulta");
+
+        _editDialogVisible = true;
+    }
+
+    private void CloseEditDialog()
+    {
+        _editDialogVisible = false;
+        _editingUser = null;
+    }
+
+    private async Task UpdateUserRoles()
+    {
+        if (_editingUser == null) return;
+
+        _processing = true;
+        try
+        {
+            var currentRoles = await UserManager.GetRolesAsync(_editingUser);
+            await UserManager.RemoveFromRolesAsync(_editingUser, currentRoles);
+
+            var newRoles = new List<string>();
+            if (_roleAdministrador) newRoles.Add("Administrador");
+            if (_roleOperador) newRoles.Add("Operador");
+            if (_roleConsulta) newRoles.Add("Consulta");
+
+            if (newRoles.Any())
+            {
+                await UserManager.AddToRolesAsync(_editingUser, newRoles);
+                Snackbar.Add("Roles actualizados exitosamente", Severity.Success);
+                CloseEditDialog();
+                await LoadUsers();
+            }
+            else
+            {
+                Snackbar.Add("El usuario debe tener al menos un rol", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al actualizar roles: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private async Task DeleteUser(IdentityUser user)
+    {
+        bool confirmed = await DialogService.ShowMessageBox(
+            "Confirmar Eliminación",
+            $"¿Está seguro de eliminar el usuario {user.Email}?",
+            yesText: "Eliminar",
+            cancelText: "Cancelar"
+        ) ?? false;
+
+        if (confirmed)
+        {
+            try
+            {
+                var result = await UserManager.DeleteAsync(user);
+                if (result.Succeeded)
+                {
+                    Snackbar.Add("Usuario eliminado exitosamente", Severity.Success);
+                    await LoadUsers();
+                }
+                else
+                {
+                    Snackbar.Add("Error al eliminar usuario", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private Color GetRoleColor(string role)
+    {
+        return role switch
+        {
+            "Administrador" => Color.Error,
+            "Operador" => Color.Primary,
+            "Consulta" => Color.Info,
+            _ => Color.Default
+        };
+    }
+}

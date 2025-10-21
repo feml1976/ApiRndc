@@ -1,0 +1,222 @@
+@page "/"
+@attribute [Authorize]
+@using ApiRndc.Domain.Interfaces
+@using ApiRndc.Domain.Enums
+@using Microsoft.EntityFrameworkCore
+@inject IUnitOfWork UnitOfWork
+
+<PageTitle>Dashboard - ApiRndc</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Dashboard</MudText>
+<MudText Typo="Typo.body1" Class="mb-6">Resumen de operaciones del sistema RNDC</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="3">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Color="Color.Primary">Terceros Registrados</MudText>
+                <MudText Typo="Typo.h3">@_terceroCount</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/terceros" Variant="Variant.Text" Color="Color.Primary">Ver Todos</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="3">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Color="Color.Secondary">Vehículos Registrados</MudText>
+                <MudText Typo="Typo.h3">@_vehiculoCount</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/vehiculos" Variant="Variant.Text" Color="Color.Secondary">Ver Todos</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="3">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Color="Color.Success">Remesas Expedidas</MudText>
+                <MudText Typo="Typo.h3">@_remesaCount</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/remesas" Variant="Variant.Text" Color="Color.Success">Ver Todas</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="3">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Color="Color.Info">Manifiestos Expedidos</MudText>
+                <MudText Typo="Typo.h3">@_manifiestoCount</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/manifiestos" Variant="Variant.Text" Color="Color.Info">Ver Todos</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+<MudGrid Class="mt-6">
+    <MudItem xs="12" md="6">
+        <MudCard Elevation="3">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Transacciones Recientes</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (_recentTransactions == null)
+                {
+                    <MudProgressLinear Indeterminate="true" />
+                }
+                else if (!_recentTransactions.Any())
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Default">No hay transacciones recientes</MudText>
+                }
+                else
+                {
+                    <MudList T="string" Dense="true">
+                        @foreach (var transaction in _recentTransactions)
+                        {
+                            <MudListItem T="string" Icon="@GetTransactionIcon(transaction.TransactionType)">
+                                <MudText Typo="Typo.body2">
+                                    @GetTransactionTypeName(transaction.TransactionType)
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="@GetStatusColor(transaction.Status)">
+                                    @transaction.Status - @transaction.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                </MudText>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/transacciones" Variant="Variant.Text" Color="Color.Primary">Ver Historial Completo</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudCard Elevation="3">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Estado de Transacciones</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudGrid>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.body2" Color="Color.Success">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" /> Exitosas: @_successCount
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.body2" Color="Color.Error">
+                            <MudIcon Icon="@Icons.Material.Filled.Error" Size="Size.Small" /> Fallidas: @_failedCount
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.body2" Color="Color.Warning">
+                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" /> Pendientes: @_pendingCount
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.body2" Color="Color.Info">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" /> Total: @_totalTransactions
+                        </MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private int _terceroCount = 0;
+    private int _vehiculoCount = 0;
+    private int _remesaCount = 0;
+    private int _manifiestoCount = 0;
+    private int _successCount = 0;
+    private int _failedCount = 0;
+    private int _pendingCount = 0;
+    private int _totalTransactions = 0;
+    private List<Domain.Entities.RndcTransaction>? _recentTransactions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            // Contar registros
+            _terceroCount = await UnitOfWork.Terceros.CountAsync(t => t.IsActive);
+            _vehiculoCount = await UnitOfWork.Vehiculos.CountAsync(v => v.IsActive);
+            _remesaCount = await UnitOfWork.Remesas.CountAsync(r => r.IsActive);
+            _manifiestoCount = await UnitOfWork.Manifiestos.CountAsync(m => m.IsActive);
+
+            // Contar transacciones por estado
+            var allTransactions = await UnitOfWork.RndcTransactions.GetAllAsync();
+            _successCount = allTransactions.Count(t => t.Status == TransactionStatus.Success);
+            _failedCount = allTransactions.Count(t => t.Status == TransactionStatus.Failed);
+            _pendingCount = allTransactions.Count(t => t.Status == TransactionStatus.Pending);
+            _totalTransactions = allTransactions.Count();
+
+            // Obtener transacciones recientes
+            var transactions = await UnitOfWork.RndcTransactions.GetAllAsync();
+            _recentTransactions = transactions
+                .OrderByDescending(t => t.CreatedAt)
+                .Take(5)
+                .ToList();
+        }
+        catch (Exception)
+        {
+            // Si hay error (probablemente BD no disponible), mantener valores en 0
+        }
+    }
+
+    private string GetTransactionIcon(TransactionType type)
+    {
+        return type switch
+        {
+            TransactionType.RegistroTerceros => Icons.Material.Filled.People,
+            TransactionType.RegistroVehiculos => Icons.Material.Filled.LocalShipping,
+            TransactionType.ExpedicionRemesa => Icons.Material.Filled.Assignment,
+            TransactionType.ExpedicionManifiesto => Icons.Material.Filled.Description,
+            TransactionType.CumplidoRemesa => Icons.Material.Filled.CheckCircle,
+            TransactionType.CumplidoManifiesto => Icons.Material.Filled.CheckCircle,
+            _ => Icons.Material.Filled.Info
+        };
+    }
+
+    private string GetTransactionTypeName(TransactionType type)
+    {
+        return type switch
+        {
+            TransactionType.RegistroTerceros => "Registro de Tercero",
+            TransactionType.RegistroVehiculos => "Registro de Vehículo",
+            TransactionType.ExpedicionRemesa => "Expedición de Remesa",
+            TransactionType.ExpedicionManifiesto => "Expedición de Manifiesto",
+            TransactionType.CumplidoRemesa => "Cumplido de Remesa",
+            TransactionType.CumplidoManifiesto => "Cumplido de Manifiesto",
+            _ => "Desconocido"
+        };
+    }
+
+    private Color GetStatusColor(TransactionStatus status)
+    {
+        return status switch
+        {
+            TransactionStatus.Success => Color.Success,
+            TransactionStatus.Failed => Color.Error,
+            TransactionStatus.Pending => Color.Warning,
+            _ => Color.Default
+        };
+    }
+}

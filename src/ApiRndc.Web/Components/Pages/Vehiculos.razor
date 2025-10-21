@@ -1,0 +1,181 @@
+@page "/vehiculos"
+@attribute [Authorize(Roles = "Administrador,Operador")]
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<PageTitle>Registro de Vehículos - ApiRndc</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Registro de Vehículos</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">Registre vehículos de carga en el RNDC</MudText>
+
+<MudCard>
+    <MudCardContent>
+        <EditForm Model="@_model" OnValidSubmit="HandleSubmit">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.NumNitEmpresaTransporte"
+                                  Label="NIT Empresa de Transporte *"
+                                  Variant="Variant.Outlined"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.NumPlaca"
+                                  Label="Placa del Vehículo *"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  Mask="@(new PatternMask("AAA000"))"
+                                  HelperText="Formato: ABC123" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.CodConfiguracionUnidadCarga"
+                                  Label="Configuración Unidad de Carga *"
+                                  Variant="Variant.Outlined"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_model.CodTipoIdPropietario"
+                               Label="Tipo ID Propietario"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("")">Ninguno</MudSelectItem>
+                        <MudSelectItem Value="@("C")">Cédula de Ciudadanía</MudSelectItem>
+                        <MudSelectItem Value="@("N")">NIT</MudSelectItem>
+                        <MudSelectItem Value="@("E")">Cédula de Extranjería</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.NumIdPropietario"
+                                  Label="Identificación Propietario"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.CodMarcaVehiculoCarga"
+                                  Label="Código Marca"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.AnoFabricacionVehiculoCarga"
+                                     Label="Año de Fabricación"
+                                     Variant="Variant.Outlined"
+                                     Min="1900"
+                                     Max="@DateTime.Now.Year" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.UnidadMedidaCapacidad"
+                                  Label="Unidad Medida Capacidad"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Send"
+                               Disabled="_isProcessing">
+                        @if (_isProcessing)
+                        {
+                            <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                            <span>Enviando al RNDC...</span>
+                        }
+                        else
+                        {
+                            <span>Registrar Vehículo</span>
+                        }
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Default"
+                               OnClick="ResetForm"
+                               Class="ml-2">
+                        Limpiar
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </MudCardContent>
+</MudCard>
+
+@if (_result != null)
+{
+    <MudCard Class="mt-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">
+                    @if (_result.Success)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Class="mr-2" />
+                        <span>Registro Exitoso</span>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Class="mr-2" />
+                        <span>Error en el Registro</span>
+                    }
+                </MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (_result.Success)
+            {
+                <MudText><strong>IngresoId:</strong> @_result.IngresoId</MudText>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Error">@_result.ErrorMessage</MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    private VehiculoDto _model = new() { CodConfiguracionUnidadCarga = "" };
+    private bool _isProcessing = false;
+    private RegistrarVehiculoResult? _result;
+
+    private async Task HandleSubmit()
+    {
+        _isProcessing = true;
+        _result = null;
+
+        try
+        {
+            var command = new RegistrarVehiculoCommand
+                {
+                    Vehiculo = _model,
+                    CreatedBy = "Usuario"
+                };
+
+            _result = await Mediator.Send(command);
+
+            if (_result.Success)
+            {
+                Snackbar.Add("Vehículo registrado exitosamente", Severity.Success);
+                ResetForm();
+            }
+            else
+            {
+                Snackbar.Add($"Error: {_result.ErrorMessage}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        _model = new VehiculoDto() { CodConfiguracionUnidadCarga = "" };
+    }
+}

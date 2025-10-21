@@ -1,0 +1,206 @@
+@page "/configuracion"
+@attribute [Authorize(Roles = "Administrador")]
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+@inject ISnackbar Snackbar
+
+<PageTitle>Configuración - ApiRndc</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Configuración del Sistema</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">Configuración de conexión al RNDC y base de datos</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Cloud" Class="mr-2" />
+                        Configuración RNDC
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudTextField Value="@_rndcServiceUrl"
+                              Label="URL del Servicio RNDC"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Class="mb-3" />
+
+                <MudTextField Value="@_rndcUsername"
+                              Label="Usuario RNDC"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Class="mb-3" />
+
+                <MudTextField Value="@_rndcPassword"
+                              Label="Contraseña RNDC"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Password"
+                              ReadOnly="true"
+                              Class="mb-3" />
+
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    <MudText Typo="Typo.caption">
+                        Para modificar estos valores, edite el archivo appsettings.json
+                    </MudText>
+                </MudAlert>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Storage" Class="mr-2" />
+                        Configuración de Base de Datos
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudTextField Value="@GetDatabaseInfo("Server")"
+                              Label="Servidor"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Class="mb-3" />
+
+                <MudTextField Value="@GetDatabaseInfo("Database")"
+                              Label="Base de Datos"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Class="mb-3" />
+
+                <MudTextField Value="@GetDatabaseInfo("Port")"
+                              Label="Puerto"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Class="mb-3" />
+
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    <MudText Typo="Typo.caption">
+                        Para modificar estos valores, edite el archivo appsettings.json
+                    </MudText>
+                </MudAlert>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+                        Información del Sistema
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead>
+                        <tr>
+                            <th>Propiedad</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Versión de .NET</strong></td>
+                            <td>@Environment.Version</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sistema Operativo</strong></td>
+                            <td>@Environment.OSVersion</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Procesador</strong></td>
+                            <td>@Environment.ProcessorCount núcleos</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Entorno</strong></td>
+                            <td>@_environment</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Directorio de Trabajo</strong></td>
+                            <td>@Environment.CurrentDirectory</td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Code" Class="mr-2" />
+                        Procesos RNDC Implementados
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                        <MudText><strong>Proceso 11:</strong> Registro de Terceros</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                        <MudText><strong>Proceso 12:</strong> Registro de Vehículos</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                        <MudText><strong>Proceso 3:</strong> Expedición de Remesa Terrestre de Carga</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                        <MudText><strong>Proceso 4:</strong> Expedición de Manifiesto de Carga</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                        <MudText><strong>Proceso 5:</strong> Cumplido de Remesa</MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                        <MudText><strong>Proceso 6:</strong> Cumplido de Manifiesto</MudText>
+                    </MudListItem>
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _rndcServiceUrl = string.Empty;
+    private string _rndcUsername = string.Empty;
+    private string _rndcPassword = string.Empty;
+    private string _environment = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        _rndcServiceUrl = Configuration["RndcConfig:ServiceUrl"] ?? "No configurado";
+        _rndcUsername = Configuration["RndcConfig:Username"] ?? "No configurado";
+        _rndcPassword = Configuration["RndcConfig:Password"] ?? "No configurado";
+        _environment = Configuration["Environment"] ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+    }
+
+    private string GetDatabaseInfo(string key)
+    {
+        var connectionString = Configuration.GetConnectionString("DefaultConnection") ?? "";
+
+        var parts = connectionString.Split(';');
+        foreach (var part in parts)
+        {
+            var keyValue = part.Split('=');
+            if (keyValue.Length == 2 && keyValue[0].Trim().Equals(key, StringComparison.OrdinalIgnoreCase))
+            {
+                return keyValue[1].Trim();
+            }
+            // También buscar por alias comunes
+            if (key == "Server" && (keyValue[0].Trim().Equals("Host", StringComparison.OrdinalIgnoreCase)))
+            {
+                return keyValue[1].Trim();
+            }
+        }
+
+        return "No configurado";
+    }
+}

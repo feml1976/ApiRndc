@@ -1,0 +1,236 @@
+@page "/cumplidos"
+@attribute [Authorize(Roles = "Administrador,Operador")]
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<PageTitle>Registro de Cumplidos - ApiRndc</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Registro de Cumplidos</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">Registre cumplidos de remesas o manifiestos en el RNDC</MudText>
+
+<MudCard>
+    <MudCardContent>
+        <EditForm Model="@_model" OnValidSubmit="HandleSubmit">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudRadioGroup @bind-Value="_tipoCumplido" T="TransactionType">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">Tipo de Cumplido *</MudText>
+                        <MudRadio Value="TransactionType.CumplidoRemesa" Color="Color.Primary">
+                            Cumplido de Remesa
+                        </MudRadio>
+                        <MudRadio Value="TransactionType.CumplidoManifiesto" Color="Color.Secondary">
+                            Cumplido de Manifiesto
+                        </MudRadio>
+                    </MudRadioGroup>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.NumNitEmpresaTransporte"
+                                  Label="NIT Empresa de Transporte *"
+                                  Variant="Variant.Outlined"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Consecutivo"
+                                  Label="@GetConsecutivoLabel()"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  HelperText="@GetConsecutivoHelperText()" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_fechaCumplido"
+                                   Label="Fecha Cumplido *"
+                                   Variant="Variant.Outlined"
+                                   Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTimePicker @bind-Time="_horaCumplido"
+                                   Label="Hora Cumplido *"
+                                   Variant="Variant.Outlined"
+                                   Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_latitud"
+                                     Label="Latitud GPS"
+                                     Variant="Variant.Outlined"
+                                     HelperText="Coordenada GPS (opcional)"
+                                     Format="F6" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_longitud"
+                                     Label="Longitud GPS"
+                                     Variant="Variant.Outlined"
+                                     HelperText="Coordenada GPS (opcional)"
+                                     Format="F6" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Observaciones"
+                                  Label="Observaciones"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  HelperText="Observaciones adicionales sobre el cumplido" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        @if (_tipoCumplido == TransactionType.CumplidoRemesa)
+                        {
+                            <text>Asegúrese de que la remesa existe y ha sido expedida previamente en el sistema.</text>
+                        }
+                        else
+                        {
+                            <text>Asegúrese de que el manifiesto existe y ha sido expedido previamente en el sistema.</text>
+                        }
+                    </MudAlert>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.CheckCircle"
+                               Disabled="_isProcessing">
+                        @if (_isProcessing)
+                        {
+                            <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                            <span>Registrando Cumplido...</span>
+                        }
+                        else
+                        {
+                            <span>Registrar Cumplido</span>
+                        }
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Default"
+                               OnClick="ResetForm"
+                               Class="ml-2">
+                        Limpiar
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </MudCardContent>
+</MudCard>
+
+@if (_result != null)
+{
+    <MudCard Class="mt-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">
+                    @if (_result.Success)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Class="mr-2" />
+                        <span>Cumplido Registrado Exitosamente</span>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Class="mr-2" />
+                        <span>Error al Registrar Cumplido</span>
+                    }
+                </MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (_result.Success)
+            {
+                <MudText><strong>IngresoId:</strong> @_result.IngresoId</MudText>
+                <MudText><strong>Consecutivo:</strong> @_result.Consecutivo</MudText>
+                <MudText><strong>Tipo:</strong> @(_result.TipoCumplido == TransactionType.CumplidoRemesa ? "Cumplido de Remesa" : "Cumplido de Manifiesto")</MudText>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Error">@_result.ErrorMessage</MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    private CumplidoDto _model = new();
+    private bool _isProcessing = false;
+    private RegistrarCumplidoResult? _result;
+    private TransactionType _tipoCumplido = TransactionType.CumplidoRemesa;
+    private DateTime? _fechaCumplido = DateTime.Now;
+    private TimeSpan? _horaCumplido = DateTime.Now.TimeOfDay;
+    private decimal? _latitud;
+    private decimal? _longitud;
+
+    private async Task HandleSubmit()
+    {
+        if (!_fechaCumplido.HasValue || !_horaCumplido.HasValue)
+        {
+            Snackbar.Add("Debe ingresar fecha y hora del cumplido", Severity.Error);
+            return;
+        }
+
+        _isProcessing = true;
+        _result = null;
+
+        try
+        {
+            // Combinar fecha y hora
+            _model.FechaCumplido = _fechaCumplido.Value.Date + _horaCumplido.Value;
+            _model.Latitud = _latitud;
+            _model.Longitud = _longitud;
+
+            var command = new RegistrarCumplidoCommand
+                {
+                    Cumplido = _model,
+                    TipoCumplido = _tipoCumplido,
+                    CreatedBy = "Usuario"
+                };
+
+            _result = await Mediator.Send(command);
+
+            if (_result.Success)
+            {
+                Snackbar.Add("Cumplido registrado exitosamente", Severity.Success);
+                ResetForm();
+            }
+            else
+            {
+                Snackbar.Add($"Error: {_result.ErrorMessage}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        _model = new CumplidoDto();
+        _fechaCumplido = DateTime.Now;
+        _horaCumplido = DateTime.Now.TimeOfDay;
+        _latitud = null;
+        _longitud = null;
+    }
+
+    private string GetConsecutivoLabel()
+    {
+        return _tipoCumplido == TransactionType.CumplidoRemesa
+            ? "Consecutivo de Remesa *"
+            : "Número de Manifiesto *";
+    }
+
+    private string GetConsecutivoHelperText()
+    {
+        return _tipoCumplido == TransactionType.CumplidoRemesa
+            ? "Ingrese el consecutivo de la remesa"
+            : "Ingrese el número del manifiesto";
+    }
+}

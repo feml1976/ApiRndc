@@ -1,0 +1,193 @@
+@page "/terceros"
+@attribute [Authorize(Roles = "Administrador,Operador")]
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<PageTitle>Registro de Terceros - ApiRndc</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Registro de Terceros</MudText>
+<MudText Typo="Typo.body1" Class="mb-4">Registre terceros (conductores, propietarios) en el RNDC</MudText>
+
+<MudCard>
+    <MudCardContent>
+        <EditForm Model="@_model" OnValidSubmit="HandleSubmit">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.NumNitEmpresaTransporte"
+                                  Label="NIT Empresa de Transporte *"
+                                  Variant="Variant.Outlined"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_model.CodTipoIdTercero"
+                               Label="Tipo de Identificación *"
+                               Variant="Variant.Outlined"
+                               Required="true">
+                        <MudSelectItem Value="@("C")">Cédula de Ciudadanía</MudSelectItem>
+                        <MudSelectItem Value="@("N")">NIT</MudSelectItem>
+                        <MudSelectItem Value="@("E")">Cédula de Extranjería</MudSelectItem>
+                        <MudSelectItem Value="@("P")">Pasaporte</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.NumIdTercero"
+                                  Label="Número de Identificación *"
+                                  Variant="Variant.Outlined"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.NomIdTercero"
+                                  Label="Nombres / Razón Social *"
+                                  Variant="Variant.Outlined"
+                                  Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.PrimerApellidoIdTercero"
+                                  Label="Primer Apellido"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.SegundoApellidoIdTercero"
+                                  Label="Segundo Apellido"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.CodMunicipioRndc"
+                                  Label="Código Municipio RNDC *"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  HelperText="Código DANE del municipio" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.NomenclaturaDireccion"
+                                  Label="Dirección"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.NumTelefonoContacto"
+                                  Label="Teléfono"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.NumLicenciaConduccion"
+                                  Label="Licencia de Conducción"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Para conductores" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Send"
+                               Disabled="_isProcessing">
+                        @if (_isProcessing)
+                        {
+                            <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                            <span>Enviando al RNDC...</span>
+                        }
+                        else
+                        {
+                            <span>Registrar en RNDC</span>
+                        }
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Default"
+                               OnClick="ResetForm"
+                               Class="ml-2">
+                        Limpiar Formulario
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </MudCardContent>
+</MudCard>
+
+@if (_result != null)
+{
+    <MudCard Class="mt-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">
+                    @if (_result.Success)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Class="mr-2" />
+                        <span>Registro Exitoso</span>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Class="mr-2" />
+                        <span>Error en el Registro</span>
+                    }
+                </MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (_result.Success)
+            {
+                <MudText><strong>IngresoId:</strong> @_result.IngresoId</MudText>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Error">@_result.ErrorMessage</MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    private TerceroDto _model = new();
+    private bool _isProcessing = false;
+    private RegistrarTerceroResult? _result;
+
+    private async Task HandleSubmit()
+    {
+        _isProcessing = true;
+        _result = null;
+
+        try
+        {
+            var command = new RegistrarTerceroCommand
+                {
+                    Tercero = _model,
+                    CreatedBy = "Usuario"
+                };
+
+            _result = await Mediator.Send(command);
+
+            if (_result.Success)
+            {
+                Snackbar.Add("Tercero registrado exitosamente en el RNDC", Severity.Success);
+                ResetForm();
+            }
+            else
+            {
+                Snackbar.Add($"Error: {_result.ErrorMessage}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error inesperado: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        _model = new TerceroDto();
+    }
+}

@@ -1,0 +1,50 @@
+@page "/Account/AccessDenied"
+
+<PageTitle>Acceso Denegado - ApiRndc</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudGrid>
+            <MudItem xs="12" Class="d-flex justify-center">
+                <MudIcon Icon="@Icons.Material.Filled.Lock" Color="Color.Warning" Style="font-size: 96px;" />
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-center">
+                <MudText Typo="Typo.h3" Color="Color.Warning" Align="Align.Center">
+                    Acceso Denegado
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-center">
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                    No tiene permisos suficientes para acceder a esta página.
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Info">
+                    <MudText Typo="Typo.body2">
+                        Si cree que esto es un error, contacte al administrador del sistema.
+                    </MudText>
+                </MudAlert>
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-center mt-4">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Home"
+                           Href="/">
+                    Volver al Inicio
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.Logout"
+                           Href="/Account/Logout"
+                           Class="ml-2">
+                    Cerrar Sesión
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</MudContainer>

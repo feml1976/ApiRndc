@@ -1,0 +1,76 @@
+@page "/Error"
+@using System.Diagnostics
+
+<PageTitle>Error - ApiRndc</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudGrid>
+            <MudItem xs="12" Class="d-flex justify-center">
+                <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Style="font-size: 96px;" />
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-center">
+                <MudText Typo="Typo.h3" Color="Color.Error" Align="Align.Center">
+                    ¡Ups! Algo salió mal
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-center">
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                    Ha ocurrido un error al procesar su solicitud. Nuestro equipo ha sido notificado.
+                </MudText>
+            </MudItem>
+
+            @if (ShowRequestId)
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Info">
+                        <MudText Typo="Typo.body2">
+                            <strong>Request ID:</strong> <code>@RequestId</code>
+                        </MudText>
+                        <MudText Typo="Typo.caption">
+                            Por favor, proporcione este ID si contacta con soporte técnico.
+                        </MudText>
+                    </MudAlert>
+                </MudItem>
+            }
+
+            <MudItem xs="12" Class="d-flex justify-center mt-4">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Home"
+                           Href="/">
+                    Volver al Inicio
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="ReloadPage"
+                           Class="ml-2">
+                    Reintentar
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId { get; set; }
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+    protected override void OnInitialized() =>
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+
+    private void ReloadPage()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+    }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = null!;
+}

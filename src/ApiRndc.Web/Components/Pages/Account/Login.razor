@@ -1,0 +1,116 @@
+@page "/Account/Login"
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Iniciar Sesión - ApiRndc</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">
+            ApiRndc
+        </MudText>
+        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+            Sistema de Gestión RNDC
+        </MudText>
+
+        <EditForm Model="@_model" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="_model.Email"
+                          Label="Correo Electrónico"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="mb-4"
+                          InputType="InputType.Email"
+                          Required="true"
+                          RequiredError="El correo es requerido" />
+
+            <MudTextField @bind-Value="_model.Password"
+                          Label="Contraseña"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="mb-4"
+                          InputType="InputType.Password"
+                          Required="true"
+                          RequiredError="La contraseña es requerida" />
+
+            <MudCheckBox @bind-Value="_model.RememberMe"
+                         Label="Recordarme"
+                         Color="Color.Primary"
+                         Class="mb-4" />
+
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Disabled="_isProcessing">
+                @if (_isProcessing)
+                {
+                    <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                    <span>Iniciando sesión...</span>
+                }
+                else
+                {
+                    <span>Iniciar Sesión</span>
+                }
+            </MudButton>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Align="Align.Center">
+                <MudLink Href="/Account/Register" Typo="Typo.body2">
+                    ¿No tienes cuenta? Regístrate aquí
+                </MudLink>
+            </MudText>
+        </EditForm>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private LoginModel _model = new();
+    private bool _isProcessing = false;
+
+    private async Task HandleLogin()
+    {
+        _isProcessing = true;
+        try
+        {
+            var result = await SignInManager.PasswordSignInAsync(
+                _model.Email,
+                _model.Password,
+                _model.RememberMe,
+                lockoutOnFailure: true);
+
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Inicio de sesión exitoso", Severity.Success);
+                NavigationManager.NavigateTo("/");
+            }
+            else if (result.IsLockedOut)
+            {
+                Snackbar.Add("Cuenta bloqueada. Intente más tarde.", Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add("Correo o contraseña incorrectos", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al iniciar sesión: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private class LoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public bool RememberMe { get; set; }
+    }
+}
