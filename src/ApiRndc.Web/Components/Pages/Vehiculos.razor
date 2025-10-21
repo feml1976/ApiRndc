@@ -11,7 +11,7 @@
 
 <MudCard>
     <MudCardContent>
-        <EditForm Model="@_model" OnValidSubmit="HandleSubmit">
+        <EditForm Model="@_model" OnValidSubmit="HandleSubmit" FormName="VehiculosForm">
             <MudGrid>
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_model.NumNitEmpresaTransporte"

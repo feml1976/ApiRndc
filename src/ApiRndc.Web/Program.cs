@@ -4,7 +4,9 @@ using ApiRndc.Infrastructure.Data;
 using ApiRndc.Infrastructure.Repositories;
 using ApiRndc.Infrastructure.Services;
 using ApiRndc.Web.Components;
+using ApiRndc.Web.Services;
 using FluentValidation;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -23,6 +25,10 @@ builder.Host.UseSerilog();
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Agregar servicios de autenticación para Blazor
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
 
 // Configurar DbContext con PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

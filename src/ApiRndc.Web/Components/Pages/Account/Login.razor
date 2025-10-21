@@ -15,7 +15,7 @@
             Sistema de Gestión RNDC
         </MudText>
 
-        <EditForm Model="@_model" OnValidSubmit="HandleLogin">
+        <EditForm Model="@_model" OnValidSubmit="HandleLogin" FormName="LoginForm">
             <DataAnnotationsValidator />
 
             <MudTextField @bind-Value="_model.Email"
@@ -69,7 +69,9 @@
 </MudContainer>
 
 @code {
-    private LoginModel _model = new();
+    [SupplyParameterFromForm]
+    private LoginModel _model { get; set; } = new();
+
     private bool _isProcessing = false;
 
     private async Task HandleLogin()

@@ -16,7 +16,7 @@
             Sistema de Gestión RNDC
         </MudText>
 
-        <EditForm Model="@_model" OnValidSubmit="HandleRegister">
+        <EditForm Model="@_model" OnValidSubmit="HandleRegister" FormName="RegisterForm">
             <DataAnnotationsValidator />
 
             <MudTextField @bind-Value="_model.Email"
@@ -75,7 +75,9 @@
 </MudContainer>
 
 @code {
-    private RegisterModel _model = new();
+    [SupplyParameterFromForm]
+    private RegisterModel _model { get; set; } = new();
+
     private bool _isProcessing = false;
 
     private async Task HandleRegister()

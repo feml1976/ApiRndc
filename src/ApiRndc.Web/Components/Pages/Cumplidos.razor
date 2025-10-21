@@ -11,7 +11,7 @@
 
 <MudCard>
     <MudCardContent>
-        <EditForm Model="@_model" OnValidSubmit="HandleSubmit">
+        <EditForm Model="@_model" OnValidSubmit="HandleSubmit" FormName="CumplidosForm">
             <MudGrid>
                 <MudItem xs="12">
                     <MudRadioGroup @bind-Value="_tipoCumplido" T="TransactionType">
