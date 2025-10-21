@@ -403,7 +403,7 @@ appsettings.Development.json
 appsettings.Production.json
 appsettings.Staging.json
 # Keep the base appsettings.json but use example values
-# appsettings.json
+src/ApiRndc.Web/appsettings.json
 
 # Environment files
 .env

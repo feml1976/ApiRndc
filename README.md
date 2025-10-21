@@ -184,6 +184,8 @@ La aplicación estará disponible en:
 
 ### Variables de Configuración
 
+**IMPORTANTE:** El archivo `appsettings.json` contiene credenciales sensibles y NO debe ser incluido en el control de versiones. Use `appsettings.Example.json` como plantilla.
+
 Todas las configuraciones se encuentran en `appsettings.json`:
 
 #### Conexión a Base de Datos
@@ -214,6 +216,34 @@ Todas las configuraciones se encuentran en `appsettings.json`:
   }
 }
 ```
+
+### Configuración con Variables de Entorno (Producción)
+
+Para producción, es recomendable usar variables de entorno en lugar de credenciales en archivos. .NET soporta esto de forma nativa:
+
+#### Linux/macOS:
+```bash
+export ConnectionStrings__DefaultConnection="Host=prod-server;Port=5432;Database=RndcDb;Username=prod_user;Password=prod_pass"
+export Rndc__Username="USUARIO_PROD"
+export Rndc__Password="PASSWORD_PROD"
+```
+
+#### Windows (PowerShell):
+```powershell
+$env:ConnectionStrings__DefaultConnection="Host=prod-server;Port=5432;Database=RndcDb;Username=prod_user;Password=prod_pass"
+$env:Rndc__Username="USUARIO_PROD"
+$env:Rndc__Password="PASSWORD_PROD"
+```
+
+#### Docker:
+```yaml
+environment:
+  - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=RndcDb;Username=user;Password=pass
+  - Rndc__Username=USUARIO
+  - Rndc__Password=PASSWORD
+```
+
+**Nota:** En variables de entorno, use `__` (doble guion bajo) para separar niveles de jerarquía en lugar de `:`.
 
 ## 🎯 Uso
 
